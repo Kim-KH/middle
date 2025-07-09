@@ -2,7 +2,7 @@
 flask-cors==4.0.0
 gunicorn==22.0.0
 google-api-python-client==2.128.0
-google-auth-httplib2==0.1.1
+google-auth-httplib2==0.2.0
 google-cloud-texttospeech==2.14.0
 gTTS==2.5.1
 requests==2.31.0

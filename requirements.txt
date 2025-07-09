@@ -19,10 +19,10 @@ distro==1.9.0
 docutils==0.21.2
 filelock==3.15.4
 filetype==1.2.0
-Flask==3.1.0
+flask==3.0.3
 flask-cors==4.0.0
 fsspec==2024.6.1
-gunicorn
+gunicorn==22.0.0
 google-ai-generativelanguage==0.6.6
 google-api-core==2.19.1
 google-api-python-client==2.143.0

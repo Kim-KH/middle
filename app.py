@@ -28,17 +28,38 @@ default_folders = {} # 기본 데이터 (읽기 전용)
 user_folders = {}    # 사용자 데이터 (읽기/쓰기)
 
 
-# --- Google Cloud TTS 클라이언트 초기화 ---
+# --- Google Cloud TTS 클라이언트 초기화 (Render 환경 변수 지원) ---
 tts_client = None
-if os.path.exists(KEYFILE_PATH):
+
+# 1. Render 환경 변수에서 JSON 문자열을 먼저 확인합니다.
+credentials_json_str = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+
+if credentials_json_str:
+    try:
+        # 환경 변수가 있으면, 문자열을 파싱하여 인증 정보를 만듭니다.
+        credentials_info = json.loads(credentials_json_str)
+        from google.oauth2 import service_account
+        credentials = service_account.Credentials.from_service_account_info(credentials_info)
+        tts_client = texttospeech.TextToSpeechClient(credentials=credentials)
+        print("[백엔드 로그] Google Cloud TTS 클라이언트 초기화 성공 (환경 변수 사용).")
+    except Exception as e:
+        print(f"[백엔드 로그][오류] 환경 변수를 사용한 TTS 클라이언트 초기화 실패: {e}")
+        traceback.print_exc()
+        
+# 2. 환경 변수가 없으면, 로컬 파일(개발 환경용)을 확인합니다.
+elif os.path.exists(KEYFILE_PATH):
     try:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = KEYFILE_PATH
         tts_client = texttospeech.TextToSpeechClient()
-        print("[백엔드 로그] Google Cloud TTS 클라이언트 초기화 성공.")
+        print("[백엔드 로그] Google Cloud TTS 클라이언트 초기화 성공 (로컬 파일 사용).")
     except Exception as e:
-        print(f"[백엔드 로그][오류] Google Cloud TTS 클라이언트 초기화 실패: {e}")
+        print(f"[백엔드 로그][오류] 로컬 파일을 사용한 TTS 클라이언트 초기화 실패: {e}")
+        traceback.print_exc()
+        
+# 3. 두 방법 모두 실패한 경우
 else:
-    print(f"[백엔드 로그][경고] 서비스 계정 키 파일을 찾을 수 없습니다: {KEYFILE_PATH}")
+    print(f"[백엔드 로그][경고] TTS 인증 정보를 찾을 수 없습니다. (환경 변수 및 로컬 파일 모두 없음)")
+
 # --- Google Cloud TTS 클라이언트 초기화 끝 ---
 
 

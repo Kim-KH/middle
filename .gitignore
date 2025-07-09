@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtualenv
+venv/
+.venv/
+
+# Credentials
+wired-benefit-*.json
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+*.exe

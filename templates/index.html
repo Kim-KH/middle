@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단어 암기장</title>
+    <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="icon" href="data:,">
+</head>
+<body>
+    <!-- ===== 폴더 목록 사이드바 ===== -->
+    <div class="folder-sidebar" id="folderSidebar">
+        <h3>폴더</h3>
+        <ul id="folder-list"></ul>
+    </div>
+
+    <!-- ===== 메인 컨텐츠 영역 ===== -->
+    <div class="main-container" id="mainContainer">
+        <div class="container">
+            <!-- ===== 상단 메뉴 및 컨트롤 영역 (3줄 레이아웃으로 변경) ===== -->
+            <div class="top-controls">
+                <!-- --- 첫 번째 줄: [햄버거] 파일, 언어, 폴더, 시험, 더보기 (단어/보기) --- -->
+                <div class="control-row">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+
+                    <div class="dropdown">
+                        <button class="dropbtn">파일</button>
+                        <div class="dropdown-content accordion-dropdown">
+                            <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">불러오기 ▼</span>
+                                <div class="submenu-content">
+                                    <label for="file-upload" class="custom-file-upload">내 CSV/TXT 파일</label>
+                                    <input type="file" id="file-upload" accept=".csv,.txt">
+                                    <a href="#" onclick="triggerBackupLoad()">내 백업 파일 (.json)</a>
+                                    <input type="file" id="backup-file-input" accept=".json">
+                                </div>
+                            </div>
+                            <hr class="dropdown-divider">
+                             <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">기본 단어장 추가 ▼</span>
+                                <div class="submenu-content" id="default-wordlist-menu">
+                                    <span style="padding: 9px 18px; color: #888; display: block;">로딩 중...</span>
+                                </div>
+                            </div>
+                            <hr class="dropdown-divider">
+                            <div class="submenu-item">
+                                 <span class="dropdown-header submenu-toggle">내보내기/백업 ▼</span>
+                                 <div class="submenu-content">
+                                    <a href="#" onclick="backupVocabulary()">전체 백업 (.json)</a>
+                                    <a href="#" onclick="exportVocabulary()">현재 폴더 내보내기 (.csv)</a>
+                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="dropbtn">언어</button>
+                        <div class="dropdown-content" id="language-menu-content"><span style="padding:12px 16px;display:block;color:#888;">로딩중...</span></div>
+                    </div>
+                    <div class="dropdown">
+                        <button class="dropbtn">폴더</button>
+                        <div class="dropdown-content accordion-dropdown">
+                            <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">폴더 관리 ▼</span>
+                                <div class="submenu-content">
+                                    <a href="#" onclick="createFolder()">새 폴더</a>
+                                    <a href="#" onclick="createSubfolder()">하위 폴더</a>
+                                    <a href="#" onclick="renameFolder()">이름 변경</a>
+                                    <a href="#" onclick="deleteSelectedFolder()">삭제</a>
+                                </div>
+                            </div>
+                            <hr class="dropdown-divider">
+                            <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">폴더 정렬 ▼</span>
+                                <div class="submenu-content">
+                                    <a href="#" onclick="sortFolders('name_asc')">오름차순</a>
+                                    <a href="#" onclick="sortFolders('name_desc')">내림차순</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown" id="exam-menu-dropdown">
+                        <button class="dropbtn">시험</button>
+                        <div class="dropdown-content accordion-dropdown">
+                            <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">단어 → 뜻 (선택) ▼</span>
+                                <div class="submenu-content">
+                                    <a href="#" onclick="startExamWithRange('mc_word', 'all')">전체</a>
+                                    <a href="#" onclick="startExamWithRange('mc_word', 'custom')">직접 입력...</a>
+                                </div>
+                            </div>
+                            <hr class="dropdown-divider">
+                            <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">뜻 → 단어 (선택) ▼</span>
+                                 <div class="submenu-content">
+                                     <a href="#" onclick="startExamWithRange('mc_meaning', 'all')">전체</a>
+                                     <a href="#" onclick="startExamWithRange('mc_meaning', 'custom')">직접 입력...</a>
+                                 </div>
+                            </div>
+                             <hr class="dropdown-divider">
+                            <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">짝짓기 ▼</span>
+                                 <div class="submenu-content">
+                                     <a href="#" onclick="startExamWithRange('matching', 'all')">전체 (5쌍씩)</a>
+                                     <a href="#" onclick="startExamWithRange('matching', 'custom')">직접 입력 (5쌍씩)...</a>
+                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown" id="more-menu-dropdown"> <!-- 더보기 메뉴 -->
+                        <button class="dropbtn">더보기</button>
+                        <div class="dropdown-content accordion-dropdown">
+                            <!-- 단어 메뉴 내용 -->
+                            <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">단어 관리 ▼</span>
+                                <div class="submenu-content">
+                                    <a href="#" onclick="addWord()">단어 추가</a>
+                                    <a href="#" onclick="shuffleWords()">섞기</a>
+                                    <a href="#" onclick="restoreWords()">원상 복귀</a>
+                                    <a href="#" id="btn-start-selection-management" onclick="enterSelectionMode()">선택 관리 시작</a>
+                                    <a href="#" onclick="deleteAllWords()">단어 전체 삭제</a>
+                                </div>
+                            </div>
+                            <hr class="dropdown-divider">
+                             <div class="submenu-item">
+                                <span class="dropdown-header submenu-toggle">단어 정렬 ▼</span>
+                                <div class="submenu-content">
+                                    <a href="#" onclick="sortWords('word', false)">단어 오름차순</a>
+                                    <a href="#" onclick="sortWords('word', true)">단어 내림차순</a>
+                                    <a href="#" onclick="sortWords('meaning', false)">의미 오름차순</a>
+                                    <a href="#" onclick="sortWords('meaning', true)">의미 내림차순</a>
+                                    <a href="#" onclick="restoreOriginalOrder()">원상 복귀(정렬)</a>
+                                </div>
+                            </div>
+                            <hr class="dropdown-divider">
+                            <!-- 보기 메뉴 내용 -->
+                            <div class="submenu-item" id="view-submenu-item"> <!-- ID 부여 (선택적) -->
+                                <span class="dropdown-header submenu-toggle">보기 설정 ▼</span>
+                                <div class="submenu-content">
+                                    <a href="#" onclick="increaseFont()">폰트 크게 (+)</a>
+                                    <a href="#" onclick="decreaseFont()">폰트 작게 (-)</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- --- 두 번째 줄: 카드, 문장보기, 필터, TTS --- -->
+                <div class="control-row">
+                    <button id="btn-show-card-view" class="control-btn" onclick="toggleCardView()">카  드</button>
+                    <button id="btn-toggle-sentence-view" class="control-btn">문장 보기</button>
+                    <div class="dropdown" id="knowledge-filter-dropdown">
+                        <button class="dropbtn" id="knowledge-filter-btn">필터: </button>
+                        <div class="dropdown-content" id="knowledge-filter-menu">
+                            <a href="#" onclick="applyKnowledgeFilterAndClose('all', 'knowledge-filter-menu')">전체</a>
+                            <a href="#" onclick="applyKnowledgeFilterAndClose('unknown', 'knowledge-filter-menu')">모름</a>
+                            <a href="#" onclick="applyKnowledgeFilterAndClose('unsure', 'knowledge-filter-menu')">애매함</a>
+                            <a href="#" onclick="applyKnowledgeFilterAndClose('known', 'knowledge-filter-menu')">앎</a>
+                            <hr class="dropdown-divider">
+                            <a href="#" onclick="resetCurrentFilteredWordsStateAndCloseMenu('knowledge-filter-menu')">필터 초기화</a>
+                        </div>
+                    </div>
+                    <div class="dropdown" id="tts-menu-dropdown"> <!-- TTS 통합 메뉴 -->
+                        <button class="dropbtn">TTS 재생</button>
+                        <div class="dropdown-content">
+                            <a href="#" id="tts-play-word" onclick="startAutoPlay('word')">단어 재생</a>
+                            <a href="#" id="tts-play-meaning" onclick="startAutoPlay('meaning')">뜻 재생</a>
+                            <a href="#" id="tts-play-both" onclick="startAutoPlay('both')">자동 재생</a>
+                            <hr class="dropdown-divider">
+                            <a href="#" id="tts-pause" onclick="pauseAutoPlay()" class="tts-control-item" style="display:none;">일시 중단</a>
+                            <a href="#" id="tts-resume" onclick="resumeAutoPlay()" class="tts-control-item" style="display:none;">연결 재생</a>
+                            <a href="#" id="tts-stop" onclick="stopAutoPlay()" class="tts-control-item" style="display:none;">완전 중단</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- --- 세 번째 줄: 단어뜻교환, 반복, 시작, 끝 | 선택모드 버튼들 --- -->
+                <div class="control-row">
+                    <button class="control-btn swap-button" onclick="swapWordMeaning()">
+                        <span class="swap-icons">
+                            <i class="fa-solid fa-arrow-right-long"></i>
+                            <i class="fa-solid fa-arrow-left-long"></i>
+                        </span>
+                    </button>
+                    <label for="repeatCount" class="range-label">반복:</label> <input type="number" id="repeatCount" value="1" min="1" class="control-input range-input">
+                    <label for="startRow" class="range-label">시작:</label> <input type="number" id="startRow" value="1" min="1" class="control-input range-input">
+                    <label for="endRow" class="range-label">끝:</label> <input type="number" id="endRow" value="0" class="control-input range-input">
+
+                    <!-- 선택 모드 시 나타나는 버튼들 (오른쪽으로 정렬되도록 별도 div로 감쌀 수 있음) -->
+                    <div class="selection-mode-controls">
+                        <button id="btn-delete-selected" class="control-btn danger-btn" style="display: none;" onclick="deleteSelectedWords()">선택 삭제</button>
+                        <button id="btn-move-selected" class="control-btn" style="display: none;" onclick="triggerMoveSelectedWords()">선택 이동</button>
+                        <button id="btn-cancel-selection" class="control-btn" style="display: none;" onclick="cancelSelectionMode()">선택 취소</button>
+                    </div>
+                </div>
+            </div> <!-- ===== .top-controls의 닫는 태그 ===== -->
+
+            <!-- ===== 단어 목록 영역 ===== -->
+            <div class="word-list-main" id="wordListMain">
+                <div class="word-table-container">
+                    <div class="word-table-header-wrapper">
+                        <table id="word-table-header">
+                            <colgroup> <col class="col-number"> <col class="col-word"> <col class="col-meaning"> </colgroup>
+                            <thead>
+                                <tr>
+                                    <th class="col-number">
+                                        <input type="checkbox" id="select-all-checkbox" style="display: none;" onclick="toggleSelectAll(this.checked)"> 번호
+                                    </th>
+                                    <th class="col-word">단어</th>
+                                    <th class="col-meaning">뜻</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                    <div class="word-table-body-wrapper">
+                        <table id="word-table-body">
+                            <colgroup> <col class="col-number"> <col class="col-word"> <col class="col-meaning"> </colgroup>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- ===== 단어 목록 영역 끝 ===== -->
+
+            <!-- ===== 플래시카드 보기 영역 ===== -->
+            <div class="flashcard-view" id="flashcardView" style="display: none;">
+                 <div class="card-container">
+                    <div class="card" id="flashcard">
+                        <div class="card-face card-front" id="cardFront">
+                            <div class="card-content"></div>
+                            <i class="fas fa-volume-high tts-toggle-icon front-tts-icon" onclick="toggleFaceTTS('front', event)"></i>
+                        </div>
+                        <div class="card-face card-back" id="cardBack">
+                            <div class="card-content"></div>
+                            <i class="fas fa-volume-high tts-toggle-icon back-tts-icon" onclick="toggleFaceTTS('back', event)"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-controls">
+                    <div class="card-nav-actions">
+                        <span class="card-counter" id="cardCounter">0 / 0</span>
+                        <button id="btn-prev-card" class="control-btn" onclick="showPrevCard()">이전</button>
+                        <button id="btn-flip-card" class="control-btn" onclick="flipCard()">뒤집기</button>
+                        <button id="btn-next-card" class="control-btn" onclick="showNextCard()">다음</button>
+                        <button id="btn-close-card-view" class="control-btn" onclick="toggleCardView()">목록</button>
+                    </div>
+                    <div class="knowledge-state-controls">
+                        <button class="control-btn ks-btn" data-state="known" onclick="setKnowledgeState('known')">앎</button>
+                        <button class="control-btn ks-btn" data-state="unsure" onclick="setKnowledgeState('unsure')">애매함</button>
+                        <button class="control-btn ks-btn" data-state="unknown" onclick="setKnowledgeState('unknown')">모름</button>
+                    </div>
+                </div>
+            </div>
+            <!-- ===== 플래시카드 보기 영역 끝 ===== -->
+
+            <!-- ===== 시험 보기 영역 ===== -->
+            <div class="exam-view" id="examView" style="display: none;">
+                <div id="examContentArea" style="display: none;">
+                    <div id="multipleChoiceArea" style="display: none;">
+                        <div id="mcQuestion"></div>
+                        <ul id="mcOptions"></ul>
+                        <div id="mcFeedback"></div>
+                    </div>
+                    <div id="matchingGameArea" style="display: none;">
+                         <div class="matching-columns">
+                            <div class="matching-column" id="matchingCol1"><ul></ul></div>
+                            <div class="matching-column" id="matchingCol2"><ul></ul></div>
+                         </div>
+                         <div id="matchingFeedback"></div>
+                    </div>
+                </div>
+                <div id="examControls" style="display: none;">
+                    <span id="examProgress"></span>
+                    <button id="btn-check-mc" class="control-btn" onclick="checkMCAnswer()" style="display: none;">정답 확인</button>
+                    <button id="btn-next-item" class="control-btn" onclick="nextExamItem()" style="display: none;">다음</button>
+                    <button id="btn-show-results" class="control-btn" onclick="showExamResults()" style="display: none;">결과 보기</button>
+                    <button id="btn-exit-exam" class="control-btn" onclick="exitExam()">시험 종료</button>
+                </div>
+                <div id="examResults" style="display: none;">
+                    <h3>시험 결과</h3>
+                    <p id="scoreDisplay"></p>
+                    <button class="control-btn" onclick="exitExam()">확인</button>
+                </div>
+            </div>
+            <!-- ===== 시험 보기 영역 끝 ===== -->
+
+            <!-- ===== 문장 보기 영역 ===== -->
+            <div class="sentence-view" id="sentenceView" style="display: none;">
+                <div class="sentence-view-header">
+                   <span class="sentence-counter" id="sentenceCounter">0 / 0</span>
+                   <h2>문장 학습</h2>
+                </div>
+               <div class="sentence-list-container" id="sentence-list-container">
+               </div>
+           </div>
+            <!-- ===== 문장 보기 영역 끝 ===== -->
+
+        </div> <!-- container 끝 -->
+    </div> <!-- main-container 끝 -->
+
+    <!-- ===== 컨텍스트 메뉴 ===== -->
+    <div id="context-menu" class="context-menu">
+        <ul>
+            <li><a href="#" id="ctx-edit">편집</a></li>
+            <li><a href="#" id="ctx-insert-above">위에 삽입</a></li>
+            <li><a href="#" id="ctx-delete">삭제</a></li>
+            <li><a href="#" id="ctx-move-review">복습 절실로 이동</a></li>
+            <li><a href="#" id="ctx-move-other">다른 폴더로 이동...</a></li>
+            <li><a href="#" id="ctx-restore-origin">원래 위치로 복원</a></li>
+            <hr style="margin: 0.3rem 0;">
+            <li><a href="#" id="ctx-toggle-selection-mode">선택 관리 시작/종료</a></li>
+        </ul>
+    </div>
+
+    <!-- ===== 폴더 컨텍스트 메뉴 ===== -->
+    <div id="folder-context-menu" class="context-menu" style="display: none;">
+        <ul>
+            <li><a href="#" id="ctx-folder-rename">이름 변경</a></li>
+            <li><a href="#" id="ctx-folder-delete">삭제</a></li>
+            <li><a href="#" id="ctx-folder-new-subfolder">새 하위 폴더</a></li>
+        </ul>
+    </div>
+    <!-- ===== 폴더 선택 모달 ===== -->
+    <div id="folder-select-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeFolderSelectModal()">×</span>
+            <h4>이동할 폴더 선택:</h4>
+            <div id="modal-folder-list">
+                <p>폴더 목록 로딩 중...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/script.js"></script>
+</body>
+</html>

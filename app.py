@@ -3,6 +3,7 @@
 from flask import Flask, render_template, request, jsonify, Response
 from flask_cors import CORS
 from google.cloud import texttospeech
+from google.oauth2 import service_account 
 import json
 import os
 import random
@@ -28,37 +29,34 @@ default_folders = {} # 기본 데이터 (읽기 전용)
 user_folders = {}    # 사용자 데이터 (읽기/쓰기)
 
 
-# --- Google Cloud TTS 클라이언트 초기화 (Render 환경 변수 지원) ---
+# --- Google Cloud TTS 클라이언트 초기화 (Render 환경 최적화) ---
 tts_client = None
 
-# 1. Render 환경 변수에서 JSON 문자열을 먼저 확인합니다.
-credentials_json_str = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+try:
+    # 1. Render 환경에서는 이 환경 변수가 반드시 존재해야 합니다.
+    credentials_json_str = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
 
-if credentials_json_str:
-    try:
-        # 환경 변수가 있으면, 문자열을 파싱하여 인증 정보를 만듭니다.
+    if credentials_json_str:
+        # Render 환경: 환경 변수에서 인증 정보 로드
+        print("[백엔드 로그] GOOGLE_APPLICATION_CREDENTIALS_JSON 환경 변수를 발견했습니다. 로드를 시도합니다.")
         credentials_info = json.loads(credentials_json_str)
-        from google.oauth2 import service_account
         credentials = service_account.Credentials.from_service_account_info(credentials_info)
         tts_client = texttospeech.TextToSpeechClient(credentials=credentials)
-        print("[백엔드 로그] Google Cloud TTS 클라이언트 초기화 성공 (환경 변수 사용).")
-    except Exception as e:
-        print(f"[백엔드 로그][오류] 환경 변수를 사용한 TTS 클라이언트 초기화 실패: {e}")
-        traceback.print_exc()
-        
-# 2. 환경 변수가 없으면, 로컬 파일(개발 환경용)을 확인합니다.
-elif os.path.exists(KEYFILE_PATH):
-    try:
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = KEYFILE_PATH
-        tts_client = texttospeech.TextToSpeechClient()
-        print("[백엔드 로그] Google Cloud TTS 클라이언트 초기화 성공 (로컬 파일 사용).")
-    except Exception as e:
-        print(f"[백엔드 로그][오류] 로컬 파일을 사용한 TTS 클라이언트 초기화 실패: {e}")
-        traceback.print_exc()
-        
-# 3. 두 방법 모두 실패한 경우
-else:
-    print(f"[백엔드 로그][경고] TTS 인증 정보를 찾을 수 없습니다. (환경 변수 및 로컬 파일 모두 없음)")
+        print("[백엔드 로그] TTS 클라이언트 초기화 성공 (환경 변수 사용).")
+    else:
+        # 로컬 개발 환경: 파일 시스템에서 인증 정보 로드
+        print("[백엔드 로그] GOOGLE_APPLICATION_CREDENTIALS_JSON 환경 변수가 없습니다. 로컬 파일 시스템에서 인증을 시도합니다.")
+        if os.path.exists(KEYFILE_PATH):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = KEYFILE_PATH
+            tts_client = texttospeech.TextToSpeechClient()
+            print("[백엔드 로그] TTS 클라이언트 초기화 성공 (로컬 파일 사용).")
+        else:
+            print(f"[백엔드 로그][경고] TTS 인증 실패: 로컬 키 파일({KEYFILE_PATH})을 찾을 수 없습니다.")
+
+except Exception as e:
+    print(f"[백엔드 로그][치명적 오류] TTS 클라이언트 초기화 중 예외 발생: {e}")
+    traceback.print_exc()
+    # tts_client는 계속 None으로 유지됩니다.
 
 # --- Google Cloud TTS 클라이언트 초기화 끝 ---
 

@@ -27,6 +27,23 @@ const voiceOptions = {
     "de-DE": { name: "독일어", voices: ["de-DE-Standard-A", "de-DE-Standard-B"] }
 };
 
+
+// --- (추가) 자동으로 생성할 기본 폴더 목록 ---
+const requiredDefaultFolders = [
+    {
+        id: "basic",                      // 폴더의 고유 ID (파일 이름과 동일하게)
+        name: "초등 필수 영단어",         // 사이드바에 표시될 폴더 이름
+        file: "basic.json"                // 읽어올 JSON 파일 이름
+    },
+    {
+        id: "middle_school",
+        name: "중학 필수 영단어",
+        file: "middle_school.json"
+    }
+];
+
+
+
 // --- 전역 변수 선언 ---
 let currentFolderPath = null;
 let currentWords = [];
@@ -89,11 +106,6 @@ let currentSentenceViewIndex = 0;
 let currentKnowledgeFilter = 'all';
 let isSentenceModeActive = false;
 
-const availableDefaultWordlists = {
-    "beginner_english_500": "초급 영어 500",
-    "toeic_essential_1000": "토익 필수 1000",
-    "travel_phrases_jp": "여행 일본어 회화"
-};
 
 // --- DOM 로드 시 실행 ---
 document.addEventListener('DOMContentLoaded', function () {
@@ -294,30 +306,6 @@ function setupDropdownEventListeners() {
     });
 }
 
-// --- 기본 단어장 메뉴 ---
-function populateDefaultWordlistMenu() {
-    const menuContent = document.getElementById('default-wordlist-menu');
-    if (!menuContent) return;
-    menuContent.innerHTML = '';
-    if (Object.keys(availableDefaultWordlists).length === 0) {
-        menuContent.innerHTML = '<span style="padding: 9px 18px; color: #888; display: block;">사용 가능한 기본 단어장 없음</span>';
-        return;
-    }
-    for (const fileKey in availableDefaultWordlists) {
-        const displayName = availableDefaultWordlists[fileKey];
-        const link = document.createElement('a');
-        link.href = '#';
-        link.textContent = displayName;
-        link.onclick = (e) => {
-            e.preventDefault();
-            addDefaultWordlist(fileKey, displayName);
-            const dropdown = link.closest('.dropdown-content');
-            if(dropdown) dropdown.style.display = 'none'; // 클릭 후 드롭다운 닫기 (아코디언 하위 메뉴에서)
-            setTimeout(()=> { if(dropdown) dropdown.style.display = ''; }, 100); // CSS :hover 등으로 다시 열릴 수 있도록
-        };
-        menuContent.appendChild(link);
-    }
-}
 
 // --- 나머지 JS 함수들은 이전과 동일하게 유지 ---
 // (addDefaultWordlist, resetCurrentFilteredWordsStateAndCloseMenu, ... , handleClickOutsideMenus_Combined 등)
@@ -386,67 +374,6 @@ function toggleDropdownMenu(menuId) {
     }
 }
 
-
-// --- 기본 단어장을 사용자 폴더로 추가하는 함수 ---
-async function addDefaultWordlist(fileKey, displayName) {
-    console.log(`기본 단어장 '${displayName}' (${fileKey}) 추가 시작...`);
-    const defaultJsonPath = `/static/defaults/${fileKey}.json`;
-    try {
-        const response = await fetch(defaultJsonPath);
-        if (!response.ok) { throw new Error(`기본 단어장 파일(${response.status}) 로드 실패: ${defaultJsonPath}`); }
-        const defaultWordsData = await response.json(); 
-        
-        let defaultWordsArray = [];
-        if (Array.isArray(defaultWordsData)) { 
-            defaultWordsArray = defaultWordsData;
-        } else if (typeof defaultWordsData === 'object' && defaultWordsData !== null) {
-            
-            console.warn(`기본 단어장 '${displayName}' 데이터가 배열이 아닙니다. 형식을 확인하세요.`);
-            alert(`'${displayName}' 기본 단어장 내용 형식이 배열이 아닙니다. (단어 객체 배열이어야 함)`); return;
-
-        } else {
-            alert(`'${displayName}' 기본 단어장 내용 형식이 잘못되었습니다.`); return;
-        }
-
-        console.log(`Fetched ${defaultWordsArray.length} words.`);
-        if (!Array.isArray(defaultWordsArray) || defaultWordsArray.length === 0 || !defaultWordsArray.every(w => w && typeof w === 'object' && 'word' in w && 'meaning' in w)) {
-             alert(`'${displayName}' 기본 단어장 내용 없거나 형식 오류 (word, meaning 필요).`); return;
-        }
-
-        let userFolderName = displayName;
-        let counter = 1;
-        const checkExistingFolders = (folderDict, targetName) => {
-            if (!folderDict || typeof folderDict !== 'object') return false;
-            if (targetName in folderDict) return true;
-            for(const key in folderDict) {
-                 if (folderDict[key] && folderDict[key].children && checkExistingFolders(folderDict[key].children, targetName)) { return true; }
-            }
-            return false;
-        };
-        const existingFoldersResponse = await fetch('/api/folders');
-        const existingFoldersData = await handleResponse(existingFoldersResponse);
-        const currentFrontendFolders = buildFolderDict(existingFoldersData.folders || []);
-
-        while (checkExistingFolders(currentFrontendFolders, userFolderName)) { userFolderName = `${displayName} (${++counter})`; }
-        console.log(`사용자 폴더 이름 결정: ${userFolderName}`);
-
-        const createFolderResponse = await fetch('/api/folder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folder_name: userFolderName }), });
-        await handleResponse(createFolderResponse);
-        console.log("User folder created on server.");
-
-        const wordsToBulkAdd = defaultWordsArray.map(w => ({...w, isStudied: false, knowledgeState: 'unknown'})); // knowledgeState 추가
-
-        const bulkAddResponse = await fetch('/api/words/bulk_add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: userFolderName, words: wordsToBulkAdd }), });
-        await handleResponse(bulkAddResponse);
-        console.log("Bulk add successful.");
-
-        alert(`'${userFolderName}' 폴더에 기본 단어장을 추가했습니다.`);
-        loadFoldersAndSelectInitial();
-    } catch (error) {
-        console.error("기본 단어장 추가 중 오류:", error);
-        handleError(error);
-    }
-}
 
 
 function resetCurrentFilteredWordsStateAndCloseMenu(menuId) {
@@ -528,25 +455,34 @@ function buildFolderDict(folderList) {
 }
 
 
-function loadFoldersAndSelectInitial() {
+// --- (교체) 아래 두 함수를 기존 loadFoldersAndSelectInitial 함수 자리에 붙여넣으세요 ---
+
+async function loadFoldersAndSelectInitial() {
     console.log("[JS] loadFoldersAndSelectInitial (Firebase 버전) 시작");
 
-    // Firestore의 'folders' 컬렉션에서 모든 문서를 가져옵니다.
-    db.collection('folders').get().then(snapshot => {
+    try {
+        const snapshot = await db.collection('folders').get();
         let userFoldersFromDB = [];
         snapshot.forEach(doc => {
-            // 문서 데이터와 문서 ID(폴더 경로로 사용)를 합칩니다.
             const folderData = doc.data();
-            folderData.path = doc.id; 
+            folderData.path = doc.id; // 문서 ID가 폴더 경로
             userFoldersFromDB.push(folderData);
         });
+        
+        // ★★★ 기본 폴더가 존재하는지 확인하고, 없으면 생성하는 함수 호출 ★★★
+        const foldersWereCreated = await ensureDefaultFoldersExist(userFoldersFromDB);
+
+        // 만약 기본 폴더가 방금 생성되었다면, 페이지를 새로고침해서 최신 목록을 보여줌
+        if (foldersWereCreated) {
+            alert("초기 기본 단어장 설정을 완료했습니다. 페이지를 새로고침합니다.");
+            window.location.reload();
+            return; // 새로고침 할 것이므로 아래 로직은 실행하지 않음
+        }
 
         console.log("[JS] Firestore에서 폴더 " + userFoldersFromDB.length + "개 로드 완료");
-        folders = userFoldersFromDB; // 전역 변수에 할당
+        folders = userFoldersFromDB;
+        renderFolderTree(folders);
 
-        renderFolderTree(folders); // 가져온 데이터로 폴더 트리 UI를 그립니다.
-
-        // 앱 처음 실행 시 어떤 폴더를 선택할지 결정하는 로직 (기존과 동일)
         let pathToSelect = null;
         const reviewNode = findFolderNode(folders, "복습 절실");
         if (reviewNode) {
@@ -557,21 +493,63 @@ function loadFoldersAndSelectInitial() {
         }
 
         if (pathToSelect) {
-            selectFolder(pathToSelect); // 선택된 폴더의 내용을 불러옵니다.
+            selectFolder(pathToSelect);
         } else {
-            // 폴더가 하나도 없을 경우 UI를 비웁니다.
             renderWordList();
             renderSentenceView();
         }
 
-    }).catch(error => {
+    } catch (error) {
         console.error("[JS][오류] Firestore에서 폴더 목록 가져오기 실패:", error);
         handleError(new Error("데이터베이스에서 폴더 목록을 가져오는 데 실패했습니다. 인터넷 연결을 확인해주세요."));
         folders = [];
-        renderFolderTree([]); 
-        renderWordList(); 
+        renderFolderTree([]);
+        renderWordList();
         renderSentenceView();
-    });
+    }
+}
+
+async function ensureDefaultFoldersExist(existingFolders) {
+    let foldersCreated = false;
+    const existingFolderNames = existingFolders.map(f => f.name);
+
+    for (const defaultFolder of requiredDefaultFolders) {
+        if (!existingFolderNames.includes(defaultFolder.name)) {
+            console.log(`기본 폴더 '${defaultFolder.name}'이(가) 없어 생성을 시작합니다.`);
+            try {
+                const response = await fetch(`/static/defaults/${defaultFolder.file}`);
+                if (!response.ok) {
+                    throw new Error(`기본 단어장 파일 로드 실패: ${defaultFolder.file}`);
+                }
+                const wordsArray = await response.json();
+
+                if (!Array.isArray(wordsArray)) {
+                    console.warn(`'${defaultFolder.name}'의 데이터가 배열이 아닙니다. 건너뜁니다.`);
+                    continue;
+                }
+                
+                const newFolderData = {
+                    name: defaultFolder.name,
+                    path: defaultFolder.name, // path를 이름과 동일하게 설정
+                    words: wordsArray.map(w => ({...w, isStudied: false, knowledgeState: 'unknown'})),
+                    original_words: wordsArray.map(w => ({...w, isStudied: false, knowledgeState: 'unknown'})),
+                    is_shuffled: false,
+                    isDefault: true, // 기본 폴더임을 표시
+                    children: {}
+                };
+
+                // Firestore에 새 폴더 문서 생성 (문서 ID를 폴더 이름으로 지정)
+                await db.collection('folders').doc(defaultFolder.name).set(newFolderData);
+                console.log(`Firestore에 기본 폴더 '${defaultFolder.name}' 생성 완료.`);
+                foldersCreated = true;
+
+            } catch (error) {
+                console.error(`'${defaultFolder.name}' 폴더 생성 중 오류:`, error);
+                handleError(new Error(`'${defaultFolder.name}' 기본 단어장을 만드는 데 실패했습니다.`));
+            }
+        }
+    }
+    return foldersCreated;
 }
 
 function findFolderNode(nodes, nameToFind) { if (!Array.isArray(nodes)) return null; for (const n of nodes) { if (n.name === nameToFind) return n; if (n.children) { const f = findFolderNode(n.children, nameToFind); if (f) return f; } } return null; }

@@ -1,14 +1,13 @@
 // --- START OF FILE script.js ---
 // 1단계에서 복사한 Firebase 구성 객체를 여기에 붙여넣으세요.
 const firebaseConfig = {
-    apiKey: "AIzaSy...",
-    authDomain: "your-project-id.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project-id.appspot.com",
-    messagingSenderId: "...",
-    appId: "...",
-    measurementId: "..."
-  };
+   apiKey: "AIzaSyBCxtMT6ANE-7NHOZdLz-YfqT9tA0foODM",
+   authDomain: "minjiword.firebaseapp.com",
+   projectId: "minjiword",
+   storageBucket: "minjiword.firebasestorage.app",
+   messagingSenderId: "1094625947864",
+   appId: "1:1094625947864:web:f71bd42fbc7c8d72ba27ad"
+};
   
   // Firebase 앱 초기화
   firebase.initializeApp(firebaseConfig);

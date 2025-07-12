@@ -113,7 +113,6 @@ document.addEventListener('DOMContentLoaded', function () {
     generateLanguageMenu();
     loadFoldersAndSelectInitial();
     setupAccordionMenus(); // 아코디언 메뉴 설정은 먼저 호출
-    populateDefaultWordlistMenu();
     setupDropdownEventListeners();
 
     const flashcardElement = document.getElementById('flashcard');

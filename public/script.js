@@ -1232,7 +1232,7 @@ function playTTS(text, languageCode, voiceName, onEndCallback) {
     const ttsFunctionUrl = 'https://generatetts-5ugghm37oa-uc.a.run.app'; 
 
     // ★★★★★ 여기부터 추가 ★★★★★
-    console.log("▶ TTS 서버로 보내는 데이터:", {
+    console.log("▶ TTS 서버로 보내는 데이터:", { 
         text: text,
         languageCode: languageCode,
         voiceName: voiceName

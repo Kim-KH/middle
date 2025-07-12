@@ -1231,6 +1231,15 @@ function playTTS(text, languageCode, voiceName, onEndCallback) {
     // ▼▼▼ 여기에 4단계에서 복사한 본인의 함수 URL을 붙여넣으세요! ▼▼▼
     const ttsFunctionUrl = 'https://generatetts-5ugghm37oa-uc.a.run.app'; 
 
+    // ★★★★★ 여기부터 추가 ★★★★★
+    console.log("▶ TTS 서버로 보내는 데이터:", {
+        text: text,
+        languageCode: languageCode,
+        voiceName: voiceName
+    });
+    // ★★★★★ 여기까지 추가 ★★★★★
+
+
     fetch(ttsFunctionUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

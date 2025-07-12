@@ -1212,9 +1212,11 @@ function playTTSSequence(word, meaning) { const wf = word ? word.replace(/\(.*?\
 
 // 기존 playTTS 함수를 지우고 아래 코드로 교체하세요.
 function playTTS(text, languageCode, voiceName, onEndCallback) {
+    // ★★★★★ 최종 수정: 빈 텍스트 요청을 보내지 않도록 방지 ★★★★★
     if (!text || text.trim() === '') {
+        console.log("TTS 중단: 재생할 텍스트가 없습니다.");
         if (onEndCallback) try { onEndCallback(); } catch (e) {}
-        return;
+        return; // 텍스트가 비어있으면 여기서 즉시 함수를 종료합니다.
     }
 
     if (ttsAudio && !ttsAudio.paused) {

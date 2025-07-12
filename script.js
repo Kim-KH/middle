@@ -1251,7 +1251,7 @@ function playTTS(text, languageCode, voiceName, onEndCallback) {
     ttsAudio = new Audio();
 
     // ▼▼▼ 여기에 4단계에서 복사한 본인의 함수 URL을 붙여넣으세요! ▼▼▼
-    const ttsFunctionUrl = 'https://generatetts-5ugghm37oa-uc.a.run.app'; 
+    const ttsFunctionUrl = 'https://us-central1-minjiword.cloudfunctions.net/generateTts'; 
 
     fetch(ttsFunctionUrl, {
         method: 'POST',

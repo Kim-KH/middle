@@ -1210,76 +1210,62 @@ function toggleWordHidden(index) { wordHidden[index] = !wordHidden[index]; rende
 function toggleMeaningHidden(index) { meaningHidden[index] = !meaningHidden[index]; renderWordList(); }
 function playTTSSequence(word, meaning) { const wf = word ? word.replace(/\(.*?\)/g, '').trim() : ''; const mf = meaning ? meaning.replace(/\(.*?\)/g, '').trim() : ''; playTTS(wf, currentWordLanguage, currentWordVoice, () => { setTimeout(() => { playTTS(mf, currentMeaningLanguage, currentMeaningVoice); }, 300); }); }
 
-// 기존 playTTS 함수를 지우고 아래 코드로 교체하세요.
+
 function playTTS(text, languageCode, voiceName, onEndCallback) {
-    if (!text || text.trim() === '') {
+    const textToPlay = text ? text.trim() : '';
+
+    // 1. 재생할 텍스트가 없으면 함수 종료
+    if (!textToPlay) {
         console.log("TTS 중단: 재생할 텍스트가 없습니다.");
         if (onEndCallback) try { onEndCallback(); } catch (e) {}
-        return; // 텍스트가 비어있으면 여기서 즉시 함수를 종료합니다.
+        return;
     }
 
-    if (ttsAudio && !ttsAudio.paused) {
-        ttsAudio.pause();
-        ttsAudio.onended = null;
-        ttsAudio.onerror = null;
-        if (ttsAudio.src && ttsAudio.src.startsWith('blob:')) {
-            try { URL.revokeObjectURL(ttsAudio.src); } catch (e) {}
-        }
+    // 2. 현재 진행 중인 모든 음성 출력을 중단
+    speechSynthesis.cancel();
+
+    // 3. 변환할 문장(Utterance) 객체 생성
+    const utterance = new SpeechSynthesisUtterance(textToPlay);
+
+    // 4. 언어에 맞는 목소리 찾아서 설정하기
+    const voices = speechSynthesis.getVoices();
+    let selectedVoice = null;
+
+    // 먼저, voiceName과 languageCode가 모두 일치하는 목소리 찾기
+    if (voiceName && languageCode) {
+        selectedVoice = voices.find(v => v.name === voiceName && v.lang.startsWith(languageCode));
     }
-    ttsAudio = new Audio();
+    // 만약 못 찾았다면, languageCode만 일치하는 목소리 찾기
+    if (!selectedVoice && languageCode) {
+        selectedVoice = voices.find(v => v.lang.startsWith(languageCode));
+    }
+    // 그래도 못 찾았다면, 그냥 기본 목소리 사용
+    if (!selectedVoice) {
+        console.warn(`요청된 목소리(${voiceName}) 또는 언어(${languageCode})를 찾을 수 없어 기본 목소리를 사용합니다.`);
+    }
+    
+    utterance.voice = selectedVoice; // 찾은 목소리를 할당
 
-    // ▼▼▼ 여기에 4단계에서 복사한 본인의 함수 URL을 붙여넣으세요! ▼▼▼
-    const ttsFunctionUrl = 'https://generatetts-5ugghm37oa-uc.a.run.app'; 
-
-    // ★★★★★ 여기부터 추가 ★★★★★
-    console.log("▶ TTS 서버로 보내는 데이터:", { 
-        text: text,
-        languageCode: languageCode,
-        voiceName: voiceName
-    });
-    // ★★★★★ 여기까지 추가 ★★★★★
-
-
-    fetch(ttsFunctionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            text: text,
-            language_code: languageCode,
-            voice_name: voiceName
-        }),
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`TTS 요청 실패 (상태: ${response.status})`);
+    // 5. 음성 재생이 끝나면 실행될 이벤트 설정
+    utterance.onend = function() {
+        if (onEndCallback) {
+            try {
+                onEndCallback();
+            } catch(e) {
+                console.error("onEndCallback 실행 중 오류:", e);
+            }
         }
-        return response.blob();
-    })
-    .then(blob => {
-        const audioUrl = URL.createObjectURL(blob);
-        ttsAudio.src = audioUrl;
-        ttsAudio.onended = () => {
-            URL.revokeObjectURL(audioUrl);
-            if (onEndCallback) onEndCallback();
-        };
-        ttsAudio.onerror = (e) => {
-            console.error("TTS 재생 오류:", e);
-            URL.revokeObjectURL(audioUrl);
-            if (isAutoPlaying) stopAutoPlay();
-            if (onEndCallback) onEndCallback();
-        };
-        ttsAudio.play().catch(error => {
-            console.error("TTS 재생 시작 오류:", error);
-            URL.revokeObjectURL(audioUrl);
-            if (isAutoPlaying) stopAutoPlay();
-            if (onEndCallback) onEndCallback();
-        });
-    })
-    .catch(error => {
-        handleError(error);
-        if (isAutoPlaying) stopAutoPlay();
-        if (onEndCallback) onEndCallback();
-    });
+    };
+
+    // 6. 음성 재생 시작
+    speechSynthesis.speak(utterance);
+}
+
+// 중요: 브라우저가 목소리 목록을 비동기적으로 가져오므로,
+// 처음 한 번은 목록을 로드하도록 미리 호출해주는 것이 좋습니다.
+speechSynthesis.getVoices();
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 }
 
 function handleFileUpload(event) {
